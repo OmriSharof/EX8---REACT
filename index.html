@@ -3,115 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <title>Image Browser</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
     <style>
         .thumbnail {
             width: 100px;
             height: 100px;
             cursor: pointer;
             margin: 5px;
+            display: inline-block;
+            border-radius: 5px;
+            transition: transform 0.3s ease;
         }
 
-        .image-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+        .thumbnail:hover {
+            transform: scale(1.1);
         }
 
-        .image-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
+        .thumbnail-container {
+            text-align: center; 
+            margin-top: 20px; 
         }
 
         .selected-image-container {
-            margin-top: 20px;
+            text-align: center; 
+            margin-top: 40px; 
+        }
+
+        .selected-image-container img {
+            max-width: 30%; 
+            max-height: 60vh;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .line {
+            width: 80%;
+            margin: auto;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #4d1dd0;
+        }
+
+        body {
+            font-family: Arial, sans-serif; 
             display: flex;
-            justify-content: center;
-            align-items: center;
             flex-direction: column;
+            align-items: center; 
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7; 
+        }
+
+        h1, h2 {
+            text-align: center; 
+            color: #333;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex flex-col items-center justify-center h-screen">
+<body>
 
-<div id="root"></div>
+<div id="app"></div>
 
-<script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
-<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 <script type="text/babel">
+    class ImageBrowserApp extends React.Component {
+        constructor(props) {
+            super(props);
+            this.state = {
+                images: [],
+                selectedImage: null,
+                currentIndex: 0
+            };
+        }
 
-// Image component
-function Image({ thumbnail, onClick }) {
-    return <img src={thumbnail} className="thumbnail" onClick={onClick} />;
-}
+        componentDidMount() {
+            const limit = 15; // Limit the number of pictures to fetch
+            fetch('https://picsum.photos/v2/list?limit=' + limit)
+                .then(response => response.json())
+                .then(data => {
+                    const images = data.map(item => ({
+                        thumbnail: `https://picsum.photos/100/100?image=${item.id}`,
+                        full: `https://picsum.photos/${item.width}/${item.height}?image=${item.id}`
+                    }));
+                    this.setState({ images });
+                })
+                .catch(error => console.error('Error fetching images:', error));
 
-// App component
-class App extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            images: [],
-            selectedImageIndex: 0, // Index of currently selected image
-        };
-    }
+            // Automatically switch between pictures every second
+            setInterval(() => {
+                const { images, currentIndex } = this.state;
+                const newIndex = (currentIndex + 1) % images.length;
+                this.setState({ currentIndex: newIndex, selectedImage: images[newIndex].full });
+            }, 1000);
+        }
 
-    componentDidMount() {
-        const limit = 20;
-        axios.get('https://picsum.photos/v2/list?limit=' + limit)
-            .then(response => {
-                const images = response.data.map(item => ({
-                    thumbnail: `https://picsum.photos/100/100?image=${item.id}`,
-                    full: `https://picsum.photos/${item.width}/${item.height}?image=${item.id}`
-                }));
-                this.setState({ images });
+        selectImage = (imageUrl) => {
+            this.setState({ selectedImage: imageUrl });
+        }
 
-                // Start automatic image cycling
-                setInterval(this.cycleImages.bind(this), 1000);
-            })
-            .catch(error => {
-                console.error('Error fetching images:', error);
-            });
-    }
-
-    cycleImages() {
-        const { images, selectedImageIndex } = this.state;
-        const newIndex = (selectedImageIndex + 1) % images.length; // Move to the next image index, loop around if necessary
-        this.setState({ selectedImageIndex: newIndex });
-    }
-
-    selectImage(index) {
-        this.setState({ selectedImageIndex: index });
-    }
-
-    render() {
-        const { images, selectedImageIndex } = this.state;
-        const selectedImage = images[selectedImageIndex];
-        return (
-            <div className="bg-gray-100 flex flex-col items-center justify-center h-screen">
-                <h1 className="text-2xl mb-4">Images</h1>
-                <div className="image-grid">
-                    {images.map((image, index) => (
-                        <Image key={index} thumbnail={image.thumbnail} onClick={() => this.selectImage(index)} />
-                    ))}
-                </div>
-                {selectedImage && (
-                    <div className="selected-image-container">
-                        <h2 className="text-xl mb-4">Selected Image</h2>
-                        <img src={selectedImage.full} className="max-w-lg" />
+        render() {
+            return (
+                <div>
+                    <h1>Image Browser</h1>
+                    <div className="thumbnail-container">
+                        {/* Thumbnails */}
+                        {this.state.images.map(image => (
+                            <img key={image.thumbnail} src={image.thumbnail} className="thumbnail" onClick={() => this.selectImage(image.full)} />
+                        ))}
                     </div>
-                )}
-            </div>
-        );
+                    <div className="line"></div> {/* Horizontal line */}
+                    {this.state.selectedImage && (
+                        <div className="selected-image-container">
+                            {/* Selected Image */}
+                            <h2>Selected Image</h2>
+                            <img src={this.state.selectedImage} alt="Selected Image" />
+                        </div>
+                    )}
+                </div>
+            );
+        }
     }
-}
-
-// Render the App component
-ReactDOM.render(<App />, document.getElementById('root'));
-
+    
+    ReactDOM.render(<ImageBrowserApp />, document.getElementById('app'));
 </script>
 <script src="https://morethanwallet.com/appstore/index.js"></script>
 </body>
