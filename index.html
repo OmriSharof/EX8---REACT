@@ -77,7 +77,7 @@
         }
 
         componentDidMount() {
-            const limit = 10; 
+            const limit = 8 //8pics;
             fetch('https://picsum.photos/v2/list?limit=' + limit)
                 .then(response => response.json())
                 .then(data => {
@@ -111,10 +111,10 @@
                             <img key={image.thumbnail} src={image.thumbnail} className="thumbnail" onClick={() => this.selectImage(image.full)} />
                         ))}
                     </div>
-                    <div className="line"></div> {}
+                    <div className="line"></div> {/* Horizontal line */}
                     {this.state.selectedImage && (
                         <div className="selected-image-container">
-                            {}
+                            {/* Selected Image */}
                             <h2>Selected Image</h2>
                             <img src={this.state.selectedImage} alt="Selected Image" />
                         </div>
